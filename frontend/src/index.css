@@ -1,0 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-primary: #E30613;
+  --color-success: #22C55E;
+  --color-warning: #F59E0B;
+  --font-sans: "Inter", sans-serif;
+}
+
+body {
+  @apply font-sans bg-[#F8F9FA] text-gray-900 transition-colors duration-300;
+}
+
+.dark body {
+  @apply bg-[#0F0F12] text-white;
+}
+
+@layer components {
+  .input-style {
+    @apply w-full px-4 py-3 bg-white dark:bg-[#1A1A1F] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-primary transition-colors;
+  }
+  .btn-primary {
+    @apply w-full py-3 bg-primary text-white font-semibold rounded-xl hover:bg-red-700 transition shadow-lg shadow-primary/30;
+  }
+}
+/* Bach l'khrita twelli k7la f Dark Mode */
+.map-tiles-dark {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+
+/* Bach l'popup dyal l'khrita yban mzyan */
+.leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  padding: 4px;
+}
