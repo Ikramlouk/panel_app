@@ -47,4 +47,17 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
+// 4. Route bach n'acquittiw l'alerte (Nzidoha hna)
+router.put('/detections/:id/acquitter', auth, async (req, res) => {
+  try {
+    await pool.query(
+      'UPDATE detections SET is_acknowledged = TRUE WHERE id = $1',
+      [req.params.id]
+    );
+    res.json({ success: true, message: "Alerte acquittée avec succès" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

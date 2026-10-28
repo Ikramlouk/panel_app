@@ -7,6 +7,7 @@ import Layout from './components/Layout';
 import Alertes from './pages/Alertes';
 import Detection from './pages/Detection'; 
 import Statistiques from './pages/Statistiques';
+import Historique from './pages/Historique';
 
 <Route path="stats" element={<Statistiques />} />
 
@@ -27,6 +28,8 @@ export default function App() {
           <Route path="detection" element={<Detection />} /> {/* <-- Zidna hada */}
           <Route path="stats" element={<Statistiques />} />
           
+
+          <Route path="/historique" element={<Historique />} />
         </Route>
       </Routes>
     </BrowserRouter>

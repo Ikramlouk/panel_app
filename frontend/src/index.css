@@ -18,6 +18,35 @@ body {
   @apply bg-[#0F0F12] text-white;
 }
 
+/* L'Khrita katbdel lounha f Dark Mode */
+.dark .leaflet-tile-pane {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+
+.leaflet-container {
+  background-color: #f8f9fa;
+}
+.dark .leaflet-container {
+  background-color: #0F0F12;
+}
+
+.leaflet-popup-content-wrapper {
+  background-color: white;
+  color: #111;
+  border-radius: 12px;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+.dark .leaflet-popup-content-wrapper {
+  background-color: #1A1A1F;
+  color: white;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.leaflet-popup-content { margin: 0; }
+.leaflet-popup-tip { background: white; }
+.dark .leaflet-popup-tip { background: #1A1A1F; }
+
 @layer components {
   .input-style {
     @apply w-full px-4 py-3 bg-white dark:bg-[#1A1A1F] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-primary transition-colors;
@@ -25,14 +54,4 @@ body {
   .btn-primary {
     @apply w-full py-3 bg-primary text-white font-semibold rounded-xl hover:bg-red-700 transition shadow-lg shadow-primary/30;
   }
-}
-/* Bach l'khrita twelli k7la f Dark Mode */
-.map-tiles-dark {
-  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
-}
-
-/* Bach l'popup dyal l'khrita yban mzyan */
-.leaflet-popup-content-wrapper {
-  border-radius: 12px;
-  padding: 4px;
 }
