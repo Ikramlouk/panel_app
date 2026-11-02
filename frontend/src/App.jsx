@@ -8,8 +8,9 @@ import Alertes from './pages/Alertes';
 import Detection from './pages/Detection'; 
 import Statistiques from './pages/Statistiques';
 import Historique from './pages/Historique';
-
-<Route path="stats" element={<Statistiques />} />
+import PanneauHistorique from './pages/PanneauHistorique'; // <-- Khass hada ykoun
+import Notifications from './pages/Notifications'; 
+import PanneauStatistiques from './pages/PanneauStatistiques';
 
 const Private = ({ children }) =>
   localStorage.getItem('token') ? children : <Navigate to="/" />;
@@ -25,12 +26,13 @@ export default function App() {
           <Route path="panneaux/:id" element={<PanneauDetail />} />
           <Route path="carte" element={<Carte />} />
           <Route path="alertes" element={<Alertes />} />
-          <Route path="detection" element={<Detection />} /> {/* <-- Zidna hada */}
+          <Route path="detection" element={<Detection />} />
           <Route path="stats" element={<Statistiques />} />
-          
-
-          <Route path="/historique" element={<Historique />} />
-        </Route>
+          <Route path="historique" element={<Historique />} />
+          <Route path="historique/:id" element={<PanneauHistorique />} /> {/* <-- Had l'Route hna */}
+          <Route path="notifications" element={<Notifications />} /> 
+          <Route path="statistiques/:id" element={<PanneauStatistiques />} />
+          </Route>
       </Routes>
     </BrowserRouter>
   );

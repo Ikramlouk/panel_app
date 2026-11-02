@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Image as ImageIcon, Eye, X, CheckCircle, Activity, Filter, Calendar as CalendarIcon, History, Download } from 'lucide-react';
+import { 
+  Search, Image as ImageIcon, Eye, X, CheckCircle, Activity, 
+  Calendar as CalendarIcon, History, Download, AlertTriangle, MapPin
+} from 'lucide-react';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import * as XLSX from 'xlsx';
@@ -9,11 +12,11 @@ import api from '../services/api';
 export default function Alertes() {
   const [alerts, setAlerts] = useState([]);
   const [filter, setFilter] = useState('Toutes');
-  const [filterType, setFilterType] = useState('Toutes'); // State dyal l'Classes
   const [search, setSearch] = useState('');
   const [selectedDate, setSelectedDate] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedAlert, setSelectedAlert] = useState(null);
   const nav = useNavigate();
   
   useEffect(() => {
@@ -32,12 +35,13 @@ export default function Alertes() {
           ref: d.reference,
           loc: d.emplacement,
           dateObj: new Date(d.detected_at),
-          time: new Date(d.detected_at).toLocaleString('fr-FR'),
+          time: new Date(d.detected_at).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute:'2-digit' }),
           conf: Math.round(d.confidence * 100),
           image: d.image_url,
           ack: d.is_acknowledged || false 
         }));
         setAlerts(formattedAlerts);
+        if (formattedAlerts.length > 0) setSelectedAlert(formattedAlerts[0]);
       })
       .finally(() => setLoading(false));
   };
@@ -45,266 +49,213 @@ export default function Alertes() {
   const handleAcquitter = async (id) => {
     try {
       await api.put(`/panneaux/detections/${id}/acquitter`);
-      setAlerts(alerts.map(a => a.id === id ? { ...a, ack: true } : a));
+      const updated = alerts.map(a => a.id === id ? { ...a, ack: true } : a);
+      setAlerts(updated);
+      if (selectedAlert && selectedAlert.id === id) {
+        setSelectedAlert({ ...selectedAlert, ack: true });
+      }
     } catch (error) {
-      console.error("Erreur lors de l'acquittement", error);
+      console.error(error);
     }
   };
 
-  // L'Filtrage (Recherche + Status + Classes + Date)
   const filteredAlerts = alerts.filter(a => {
     const matchSearch = a.type.toLowerCase().includes(search.toLowerCase()) || a.ref.toLowerCase().includes(search.toLowerCase());
-    
     let matchStatus = true;
     if (filter === 'Non traitées') matchStatus = !a.ack;
     if (filter === 'Acquittées') matchStatus = a.ack;
-
-    // Filtre dyal l'Classes
-    let matchType = true;
-    if (filterType !== 'Toutes') {
-      matchType = a.type === filterType;
-    }
-
-    // Filtre dyal l'Date (b l'Calendrier)
     let matchDate = true;
     if (selectedDate) {
-      const alertDate = a.dateObj.toLocaleDateString('en-CA'); 
-      const filterDate = selectedDate.toLocaleDateString('en-CA');
-      matchDate = alertDate === filterDate;
+      matchDate = a.dateObj.toLocaleDateString('en-CA') === selectedDate.toLocaleDateString('en-CA');
     }
-
-    return matchSearch && matchStatus && matchType && matchDate;
+    return matchSearch && matchStatus && matchDate;
   });
 
-  // L'Export dyal l'Excel
   const exportToExcel = () => {
-    if (filteredAlerts.length === 0) {
-      alert("Ma kayna 7ta alerte bach tsiftha!");
-      return;
-    }
-
+    if (filteredAlerts.length === 0) return alert("Ma kayna 7ta alerte!");
     const dataToExport = filteredAlerts.map(a => ({
-      "Panneau (Reference)": a.ref,
-      "Type d'anomalie": a.type,
-      "Emplacement": a.loc,
-      "Date de détection": a.dateObj.toLocaleDateString('fr-FR'),
-      "Heure": a.dateObj.toLocaleTimeString('fr-FR'),
-      "Confiance (%)": `${a.conf}%`,
-      "Statut": a.ack ? 'Traitée' : 'Non traitée'
+      "Panneau": a.ref, "Type": a.type, "Emplacement": a.loc, "Date": a.dateObj.toLocaleDateString('fr-FR'), "Statut": a.ack ? 'Traitée' : 'Non traitée'
     }));
-
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Alertes");
-    XLSX.writeFile(workbook, `Rapport_Alertes_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(workbook, `Rapport_Alertes.xlsx`);
   };
 
   const total = alerts.length;
   const nonTraitees = alerts.filter(a => !a.ack).length;
   const traitees = alerts.filter(a => a.ack).length;
-  
-  const typeCounts = alerts.reduce((acc, alert) => {
-    acc[alert.type] = (acc[alert.type] || 0) + 1;
-    return acc;
-  }, {});
+
+  const getColor = (conf) => conf >= 90 ? 'text-primary bg-primary/10 border-primary' : conf >= 75 ? 'text-warning bg-warning/10 border-warning' : 'text-yellow-500 bg-yellow-500/10 border-yellow-500';
+  const getStatusLabel = (conf) => conf >= 90 ? 'Critique' : conf >= 75 ? 'Attention' : 'A surveiller';
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] bg-gray-50 dark:bg-[#0F0F12] transition-colors p-4 gap-6">
+    <div className="flex h-[calc(100vh-4rem)] bg-gray-50 dark:bg-[#0F0F12] overflow-hidden">
       
-      {/* Header & Filtres */}
-      <div className="flex flex-col gap-4 flex-shrink-0">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
-          <div>
-            <h1 className="text-3xl font-black tracking-tight text-gray-900 dark:text-white">Alertes</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-1">Chaque anomalie détectée par YOLO</p>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => nav('/historique')}
-              className="flex items-center gap-2 bg-white dark:bg-[#1A1A1F] border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-50 dark:hover:bg-white/5 transition shadow-sm"
-            >
-              <History size={16} /> Historique
-            </button>
-
-            <button 
-              onClick={exportToExcel}
-              className="flex items-center gap-2 bg-success text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-green-600 transition shadow-sm"
-            >
-              <Download size={16} /> Exporter Excel
-            </button>
-          </div>
-        </div>
+      {/* 1. L'Jneb l'isar (Liste dyal l'Alertes) */}
+      <div className="w-full lg:w-[350px] xl:w-[400px] flex flex-col border-r border-gray-200 dark:border-white/5 bg-white dark:bg-[#1A1A1F] h-full">
         
-        <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-[#1A1A1F] p-3 rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm">
-          {/* Recherche */}
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-            <input 
-              value={search} onChange={(e) => setSearch(e.target.value)} 
-              placeholder="Rechercher..." 
-              className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-[#121216] border border-gray-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary text-gray-900 dark:text-white transition-colors" 
-            />
+        <div className="p-4 border-b border-gray-100 dark:border-white/5">
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-xl font-black text-gray-900 dark:text-white">Alertes</h1>
+            <div className="flex gap-1">
+               <button onClick={() => nav('/historique')} className="p-1.5 text-gray-500 hover:text-primary transition"><History size={18} /></button>
+               <button onClick={exportToExcel} className="p-1.5 text-gray-500 hover:text-success transition"><Download size={18} /></button>
+            </div>
           </div>
           
-          {/* L'Calendrier */}
-          <div className="relative">
-            <DatePicker
-              selected={selectedDate}
-              onChange={(date) => setSelectedDate(date)}
-              dateFormat="dd/MM/yyyy"
-              placeholderText="Filtrer par date"
-              isClearable
-              className="pl-9 pr-3 py-2 bg-gray-50 dark:bg-[#121216] border border-gray-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:border-primary text-gray-900 dark:text-white transition-colors cursor-pointer w-40"
-            />
-            <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
-          </div>
-
-          {/* L'Filtre dyal l'Classes (Dropdown) */}
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
-            <select 
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="pl-9 pr-8 py-2 bg-gray-50 dark:bg-[#121216] border border-gray-200 dark:border-white/10 rounded-xl text-sm font-medium focus:outline-none focus:border-primary text-gray-900 dark:text-white cursor-pointer appearance-none"
-            >
-              <option value="Toutes">Toutes les classes</option>
-              <option value="Lines">Lines</option>
-              <option value="Dark Spot">Dark Spot</option>
-              <option value="cable issues">Cable Issues</option>
-              <option value="Screen">Screen</option>
-            </select>
-          </div>
-
-          {/* Status Tabs */}
-          <div className="flex gap-1 bg-gray-100 dark:bg-[#121216] p-1 rounded-xl">
+          <div className="flex gap-1 mb-3">
             {['Toutes', 'Non traitées', 'Acquittées'].map((f) => (
-              <button 
-                key={f} onClick={() => setFilter(f)}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  filter === f 
-                    ? 'bg-white dark:bg-[#2A2A2F] text-gray-900 dark:text-white shadow-sm' 
-                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                }`}
-              >
-                {f}
+              <button key={f} onClick={() => setFilter(f)} className={`flex-1 py-1 rounded-md text-[11px] font-bold transition-all ${filter === f ? 'bg-gray-900 text-white shadow-sm' : 'bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}>
+                {f} ({f === 'Toutes' ? total : f === 'Non traitées' ? nonTraitees : traitees})
               </button>
             ))}
           </div>
+
+          <div className="flex gap-2">
+             <div className="relative flex-1">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher..." className="w-full pl-7 pr-2 py-1.5 bg-gray-50 dark:bg-[#121216] border border-gray-200 dark:border-white/10 rounded-md text-xs focus:outline-none" />
+             </div>
+             <DatePicker selected={selectedDate} onChange={setSelectedDate} placeholderText="Date" className="w-20 px-2 py-1.5 bg-gray-50 dark:bg-[#121216] border border-gray-200 dark:border-white/10 rounded-md text-xs text-center" />
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+          {filteredAlerts.map((alert) => (
+            <div 
+              key={alert.id} 
+              onClick={() => setSelectedAlert(alert)}
+              className={`p-3 rounded-lg cursor-pointer border transition-all ${
+                selectedAlert?.id === alert.id 
+                  ? 'border-primary bg-primary/5 shadow-sm' 
+                  : 'border-transparent hover:bg-gray-50 dark:hover:bg-white/5'
+              }`}
+            >
+              <div className="flex justify-between items-center mb-1">
+                <p className="font-bold text-gray-900 dark:text-white text-xs">{alert.ref}</p>
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${getColor(alert.conf)}`}>{getStatusLabel(alert.conf)}</span>
+              </div>
+              <div className="flex justify-between text-[10px] text-gray-500">
+                <span>{alert.type}</span>
+                <span>{alert.time}</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Layout: Grille (Lisar) + Stats (Limen) */}
-      <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
-        {/* L'Grille dyal l'Alertes */}
-        <div className="flex-1 overflow-y-auto pr-2">
-          {loading ? (
-            <div className="flex justify-center py-20"><Activity className="animate-spin text-primary" size={32} /></div>
-          ) : filteredAlerts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-gray-500">
-              <CheckCircle size={48} className="text-success/30 mb-4" />
-              <p className="text-lg font-bold">Aucune alerte trouvée</p>
-              <p className="text-sm">Essayez de modifier vos filtres.</p>
+      {/* 2. L'Wst w l'Limn (Détails dyal l'Alerte) */}
+      <div className="hidden lg:flex flex-1 flex-col overflow-y-auto bg-gray-50 dark:bg-[#0F0F12] p-6">
+        
+        {selectedAlert ? (
+          <div className="max-w-5xl mx-auto w-full flex flex-col gap-6">
+            
+            {/* Header dyal l'Détails */}
+            <div className="flex justify-between items-start bg-white dark:bg-[#1A1A1F] p-5 rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm">
+              <div>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Détail de l'alerte</p>
+                <h2 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+                  {selectedAlert.ref}
+                  <span className={`text-[10px] font-bold px-2 py-1 rounded-md border ${getColor(selectedAlert.conf)}`}>{getStatusLabel(selectedAlert.conf)}</span>
+                </h2>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Date de détection</p>
+                <p className="text-sm font-bold text-gray-900 dark:text-white">{selectedAlert.time}</p>
+              </div>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {filteredAlerts.map((alert) => (
-                <div key={alert.id} className={`group relative bg-white dark:bg-[#1A1A1F] border rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 ${alert.ack ? 'border-gray-200 dark:border-white/5 opacity-60' : 'border-primary/20 dark:border-primary/30'}`}>
-                  <div className={`absolute top-0 left-0 right-0 h-1 z-10 ${alert.ack ? 'bg-gray-400' : 'bg-primary'}`}></div>
 
-                  <div className="relative h-36 bg-gray-100 dark:bg-black overflow-hidden">
-                    {alert.image ? (
-                      <>
-                        <img src={alert.image} alt="detection" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
-                      </>
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400"><ImageIcon size={32} /></div>
-                    )}
-                    
-                    <div className="absolute top-3 right-3">
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded-md text-white shadow-sm ${alert.conf > 90 ? 'bg-primary' : 'bg-warning'}`}>
-                        {alert.conf} %
-                      </span>
-                    </div>
+            {/* L'Contenu: Tswira f l'isar, Ma3lomat f l'imen */}
+            <div className="flex flex-col xl:flex-row gap-6">
+              
+              {/* L'Tsawira (M9ada) */}
+              <div className="flex-1">
+                <div 
+                  className="w-full aspect-[4/3] bg-black rounded-2xl overflow-hidden relative group cursor-pointer border border-gray-200 dark:border-white/10 shadow-lg"
+                  onClick={() => setSelectedImage(selectedAlert.image)}
+                >
+                  {selectedAlert.image ? (
+                    <>
+                      <img src={selectedAlert.image} alt="Capture" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors flex items-center justify-center">
+                        <div className="bg-black/50 p-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Eye className="text-white" size={24} />
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-500"><ImageIcon size={48} /></div>
+                  )}
+                </div>
+              </div>
 
-                    <div className="absolute bottom-3 left-3 right-3">
-                      <h3 className="font-bold text-white text-lg drop-shadow-md flex items-center gap-2">{alert.type}</h3>
-                    </div>
-                  </div>
-
-                  <div className="p-4">
-                    <div className="flex justify-between items-start mb-3">
+              {/* L'Ma3lomat w l'Action */}
+              <div className="w-full xl:w-80 flex flex-col gap-4">
+                
+                {/* L'Khatarat (Risk Cards) */}
+                <div className="bg-white dark:bg-[#1A1A1F] rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm overflow-hidden">
+                  <div className={`p-4 border-b ${getColor(selectedAlert.conf)}`}>
+                    <div className="flex items-center gap-3">
+                      <AlertTriangle size={24} />
                       <div>
-                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Panneau</p>
-                        <p className="text-sm font-bold text-gray-900 dark:text-white">{alert.ref}</p>
-                        <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">{alert.loc}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Date</p>
-                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{alert.time.split(' ')[0]}</p>
-                        <p className="text-[10px] text-gray-500">{alert.time.split(' ')[1]}</p>
+                        <p className="text-[10px] font-bold uppercase opacity-80">Niveau de risque</p>
+                        <p className="text-lg font-black">{getStatusLabel(selectedAlert.conf)}</p>
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-2 pt-3 border-t border-gray-100 dark:border-white/5">
-                      <button onClick={() => setSelectedImage(alert.image)} className="flex-1 py-2 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg text-xs font-bold text-gray-600 dark:text-gray-300 transition-colors flex items-center justify-center gap-1.5"><Eye size={14} /> Voir</button>
-                      {!alert.ack ? (
-                        <button onClick={() => handleAcquitter(alert.id)} className="flex-1 py-2 bg-primary text-white rounded-lg text-xs font-bold hover:bg-red-700 transition-colors shadow-sm">Acquitter</button>
-                      ) : (
-                        <button disabled className="flex-1 py-2 bg-gray-100 dark:bg-white/5 text-gray-400 rounded-lg text-xs font-bold cursor-not-allowed flex items-center justify-center gap-1"><CheckCircle size={14} /> Traitée</button>
-                      )}
+                  </div>
+                  <div className="p-4 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-500">Confiance de l'IA</span>
+                      <span className="text-sm font-black text-gray-900 dark:text-white">{selectedAlert.conf}%</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full ${getColor(selectedAlert.conf).split(' ')[1]}`} style={{ width: `${selectedAlert.conf}%` }}></div>
+                    </div>
+                    <div className="pt-2 border-t border-gray-100 dark:border-white/5 flex justify-between items-center">
+                      <span className="text-xs text-gray-500">Anomalie</span>
+                      <span className="text-sm font-bold text-gray-900 dark:text-white">{selectedAlert.type}</span>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
 
-        {/* Stats Panel (L'Jneb) */}
-        <div className="w-full lg:w-72 flex flex-col gap-4 flex-shrink-0">
-          <div className="bg-white dark:bg-[#1A1A1F] rounded-2xl p-5 border border-gray-200 dark:border-white/5 shadow-sm">
-            <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-4">Résumé</h2>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between items-end mb-1"><span className="text-xs text-gray-500 font-medium">Total Alertes</span><span className="text-lg font-black text-gray-900 dark:text-white">{total}</span></div>
-              </div>
-              <div>
-                <div className="flex justify-between items-end mb-1"><span className="text-xs text-gray-500 font-medium">Non traitées</span><span className="text-lg font-black text-primary">{nonTraitees}</span></div>
-                <div className="w-full h-1.5 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden"><div className="h-full bg-primary rounded-full" style={{ width: `${total > 0 ? (nonTraitees/total)*100 : 0}%` }}></div></div>
-              </div>
-              <div>
-                <div className="flex justify-between items-end mb-1"><span className="text-xs text-gray-500 font-medium">Acquittées</span><span className="text-lg font-black text-success">{traitees}</span></div>
-                <div className="w-full h-1.5 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden"><div className="h-full bg-success rounded-full" style={{ width: `${total > 0 ? (traitees/total)*100 : 0}%` }}></div></div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-[#1A1A1F] rounded-2xl p-5 border border-gray-200 dark:border-white/5 shadow-sm flex-1">
-            <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Filter size={14} className="text-primary" /> Par Type</h2>
-            <div className="space-y-3">
-              {Object.entries(typeCounts).map(([type, count]) => (
-                <div key={type} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/5">
-                  <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-primary"></div><span className="text-xs font-medium text-gray-700 dark:text-gray-300">{type}</span></div>
-                  <span className="text-xs font-bold text-gray-900 dark:text-white">{count}</span>
+                {/* L'Emplacement */}
+                <div className="bg-white dark:bg-[#1A1A1F] rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm p-4 flex items-center gap-4">
+                  <div className="p-3 bg-gray-50 dark:bg-white/5 rounded-xl text-gray-500"><MapPin size={20} /></div>
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-0.5">Emplacement</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">{selectedAlert.loc}</p>
+                  </div>
                 </div>
-              ))}
-              {Object.keys(typeCounts).length === 0 && <p className="text-xs text-gray-500 text-center py-4">Aucune donnée</p>}
+
+                {/* L'Bouton dyal l'Action */}
+                <div className="mt-auto pt-2">
+                  {!selectedAlert.ack ? (
+                    <button onClick={() => handleAcquitter(selectedAlert.id)} className="w-full py-3 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-gray-800 transition shadow-lg flex items-center justify-center gap-2">
+                      <CheckCircle size={18} /> Marquer comme résolue
+                    </button>
+                  ) : (
+                    <div className="w-full py-3 bg-success/10 text-success border border-success/20 rounded-xl text-sm font-bold flex items-center justify-center gap-2">
+                      <CheckCircle size={18} /> Alerte traitée
+                    </div>
+                  )}
+                </div>
+
+              </div>
             </div>
+
           </div>
-        </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-gray-500">Sélectionnez une alerte pour voir les détails</div>
+        )}
       </div>
 
       {/* Modal dyal l'tswira */}
       {selectedImage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setSelectedImage(null)}>
-          <div className="relative max-w-4xl w-full bg-white dark:bg-[#1A1A1F] rounded-2xl overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-white/10">
-              <h3 className="font-bold text-lg text-gray-900 dark:text-white">Capture YOLO</h3>
-              <button onClick={() => setSelectedImage(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg text-gray-500 transition"><X size={20} /></button>
-            </div>
-            <img src={selectedImage} alt="YOLO Detection" className="w-full h-auto max-h-[70vh] object-contain bg-black" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4" onClick={() => setSelectedImage(null)}>
+          <div className="relative max-w-6xl w-full" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setSelectedImage(null)} className="absolute -top-12 right-0 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition"><X size={24} /></button>
+            <img src={selectedImage} alt="YOLO Detection" className="w-full h-auto max-h-[85vh] object-contain rounded-xl" />
           </div>
         </div>
       )}

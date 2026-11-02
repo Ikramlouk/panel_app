@@ -18,13 +18,14 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// 2. Jib l'akhir détections (l'Alertes)
+// 2. Jib l'akhir détections (l'Alertes) m3a smiyt l'user li 7elha (LEFT JOIN)
 router.get('/detections/all', auth, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT d.*, p.reference, p.emplacement, p.status as panneau_status
+      SELECT d.*, p.reference, p.emplacement, p.status as panneau_status, u.name as acknowledged_by_name
       FROM detections d
       JOIN panneaux p ON d.panneau_id = p.id
+      LEFT JOIN users u ON d.acknowledged_by = u.id
       ORDER BY d.detected_at DESC
     `);
     res.json(result.rows);
@@ -47,12 +48,13 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
-// 4. Route bach n'acquittiw l'alerte (Nzidoha hna)
+// 4. Route bach n'acquittiw l'alerte (M3a l'Traçabilité dyal l'User)
 router.put('/detections/:id/acquitter', auth, async (req, res) => {
   try {
+    // req.user.id kayji mn l'JWT (l'user li mconnecté)
     await pool.query(
-      'UPDATE detections SET is_acknowledged = TRUE WHERE id = $1',
-      [req.params.id]
+      'UPDATE detections SET is_acknowledged = TRUE, acknowledged_by = $1, acknowledged_at = NOW() WHERE id = $2',
+      [req.user.id, req.params.id]
     );
     res.json({ success: true, message: "Alerte acquittée avec succès" });
   } catch (err) {

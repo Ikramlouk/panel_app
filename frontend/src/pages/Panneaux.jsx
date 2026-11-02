@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, CheckCircle, XCircle, Image as ImageIcon, ChevronRight, RefreshCw, Zap, MapPin, Activity, Clock } from 'lucide-react';
+import { Search, CheckCircle, XCircle, Image as ImageIcon, ChevronRight, RefreshCw, Zap, MapPin, Activity, Clock, LayoutDashboard, AlertTriangle } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -62,8 +62,16 @@ export default function Panneaux() {
     return () => observer.disconnect();
   }, []);
 
+  // Jbed l'data w 3awd jbedha kol 10 secondes
   useEffect(() => {
-    api.get('/panneaux').then((r) => setList(r.data)).catch(() => nav('/'));
+    const fetchData = () => {
+      api.get('/panneaux').then((r) => setList(r.data)).catch(() => nav('/'));
+    };
+    
+    fetchData();
+    const interval = setInterval(fetchData, 10000); 
+    
+    return () => clearInterval(interval);
   }, [nav]);
 
   const filtered = list.filter((p) => {
@@ -75,21 +83,19 @@ export default function Panneaux() {
   const total = list.length;
   const countOk = list.filter(p => p.status === 'ok').length;
   const countAnomalie = list.filter(p => p.status === 'anomalie').length;
-
-  // Hna drna l'Khrita katkhdem b `filtered` machi `list` bach tban ghir li mfiltri
   const mapSites = filtered.filter(p => p.latitude && p.longitude);
 
   const handleRowClick = (p) => {
     if (p.latitude && p.longitude) {
       setMapCenter([p.latitude, p.longitude]);
-      setMapZoom(14);
+      setMapZoom(14); 
       setSelectedSite(p);
       
       setTimeout(() => {
         if (markerRefs.current[p.id]) {
           markerRefs.current[p.id].openPopup();
         }
-      }, 1500);
+      }, 1500); 
     }
   };
 
@@ -108,7 +114,7 @@ export default function Panneaux() {
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-gray-50 dark:bg-[#0F0F12] transition-colors">
       
-      {/* Header (Top Bar) */}
+      {/* Header */}
       <div className="flex-shrink-0 flex justify-between items-center mb-6 bg-white dark:bg-[#1A1A1F] p-4 rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
@@ -231,9 +237,7 @@ export default function Panneaux() {
             <h2 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
               <MapPin size={16} className="text-primary" /> Carte Interactive
             </h2>
-            <span className="text-[11px] font-medium text-gray-500 bg-white dark:bg-[#121216] px-2 py-1 rounded-md border border-gray-200 dark:border-white/5">
-              {mapSites.length} localisés
-            </span>
+            <span className="text-[11px] font-medium text-gray-500 bg-white dark:bg-[#121216] px-2 py-1 rounded-md border border-gray-200 dark:border-white/5">{mapSites.length} localisés</span>
           </div>
           <div className="flex-1 relative z-0">
             <MapContainer center={mapCenter} zoom={mapZoom} style={{ height: '100%', width: '100%' }}>
