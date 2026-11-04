@@ -5,12 +5,13 @@ import PanneauDetail from './pages/PanneauDetail';
 import Carte from './pages/Carte'; 
 import Layout from './components/Layout';
 import Alertes from './pages/Alertes';
-import Detection from './pages/Detection'; 
 import Statistiques from './pages/Statistiques';
 import Historique from './pages/Historique';
-import PanneauHistorique from './pages/PanneauHistorique'; // <-- Khass hada ykoun
+import PanneauHistorique from './pages/PanneauHistorique';
 import Notifications from './pages/Notifications'; 
-import PanneauStatistiques from './pages/PanneauStatistiques';
+import Maintenance from './pages/Maintenance'; 
+import Rapports from './pages/Rapports'; 
+import PanneauStatistiques from './pages/PanneauStatistiques'; // <-- Zidna hada
 
 const Private = ({ children }) =>
   localStorage.getItem('token') ? children : <Navigate to="/" />;
@@ -26,13 +27,17 @@ export default function App() {
           <Route path="panneaux/:id" element={<PanneauDetail />} />
           <Route path="carte" element={<Carte />} />
           <Route path="alertes" element={<Alertes />} />
-          <Route path="detection" element={<Detection />} />
+          <Route path="rapports" element={<Rapports />} />
           <Route path="stats" element={<Statistiques />} />
+          
+          {/* HAD L'ROUTE HIYA LI KANT NA9SA */}
+          <Route path="statistiques/:id" element={<PanneauStatistiques />} /> 
+          
           <Route path="historique" element={<Historique />} />
-          <Route path="historique/:id" element={<PanneauHistorique />} /> {/* <-- Had l'Route hna */}
-          <Route path="notifications" element={<Notifications />} /> 
-          <Route path="statistiques/:id" element={<PanneauStatistiques />} />
-          </Route>
+          <Route path="historique/:id" element={<PanneauHistorique />} />
+          <Route path="notifications" element={<Notifications />} />
+          <Route path="maintenance" element={<Maintenance />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );

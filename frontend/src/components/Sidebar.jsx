@@ -1,15 +1,16 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Map, Bell, BarChart2, Users, Settings, Upload } from 'lucide-react'; // Zidna Upload hna
+import { LayoutDashboard, Map, Bell, BarChart2, Users, Settings, FileText, Wrench } from 'lucide-react'; 
 
 export default function Sidebar() {
   const menu = [
     { name: 'Tableau de bord', icon: LayoutDashboard, path: '/panneaux' },
     { name: 'Carte', icon: Map, path: '/carte' },
     { name: 'Alertes', icon: Bell, path: '/alertes' },
-    { name: 'Détection', icon: Upload, path: '/detection' }, // Zidna hada
+    { name: 'Rapports', icon: FileText, path: '/rapports' }, // <-- Bdelna Détection b Rapports
     { name: 'Statistiques', icon: BarChart2, path: '/stats' },
     { name: 'Utilisateurs', icon: Users, path: '/users' },
     { name: 'Paramètres', icon: Settings, path: '/settings' },
+    { name: 'Maintenance', icon: Wrench, path: '/maintenance' },
   ];
 
   return (
