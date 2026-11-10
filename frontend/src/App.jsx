@@ -12,6 +12,8 @@ import Notifications from './pages/Notifications';
 import Maintenance from './pages/Maintenance'; 
 import Rapports from './pages/Rapports'; 
 import PanneauStatistiques from './pages/PanneauStatistiques'; // <-- Zidna hada
+import Utilisateurs from './pages/Utilisateurs';
+import Parametres from './pages/Parametres';
 
 const Private = ({ children }) =>
   localStorage.getItem('token') ? children : <Navigate to="/" />;
@@ -37,6 +39,9 @@ export default function App() {
           <Route path="historique/:id" element={<PanneauHistorique />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="maintenance" element={<Maintenance />} />
+          <Route path="users" element={<Utilisateurs />} />
+          <Route path="settings" element={<Parametres />} />
+          <Route path="parametres" element={<Parametres />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -12,6 +12,7 @@ const maintenanceRoutes = require('./routes/maintenance');
 const reportRoutes = require('./routes/reports');
 const app = express();
 const chatRoutes = require('./routes/chat');
+const settingsRoutes = require('./routes/settings');
 
 // 2. Les Middlewares (Cors w JSON)
 app.use(cors());
@@ -28,6 +29,7 @@ app.use('/api/users', userRoutes);         // <-- Route dyal l'Users (mrat wa7da
 app.use('/api/maintenance', maintenanceRoutes); // <-- Route dyal l'Maintenance
 app.use('/api/reports', reportRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/settings', settingsRoutes);
 // 5. Ch3el l'serveur
 app.listen(process.env.PORT, () =>
   console.log(`Server running on port ${process.env.PORT}`)
