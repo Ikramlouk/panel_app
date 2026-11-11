@@ -4,7 +4,7 @@ const pool = require('../config/db');
 const auth = require('../middleware/auth');
 
 // ==========================================
-// 1. Routes dyal l'Profil (L'FO9)
+// 1. Routes dyal l'Profil (L'FO9 MOHIM!)
 // ==========================================
 
 // Jib l'Profil
@@ -30,7 +30,7 @@ router.put('/me', auth, async (req, res) => {
     );
     res.json(result.rows[0]);
   } catch (err) {
-    console.error("ERREUR BACKEND:", err.message); // <-- GHADI TBAN LIK F TERMINAL
+    console.error("ERREUR BACKEND:", err.message); 
     res.status(500).json({ error: 'Erreur serveur lors de la modification' });
   }
 });
@@ -54,39 +54,81 @@ router.put('/me/password', auth, async (req, res) => {
 });
 
 // ==========================================
-// 2. Routes dyal l'Techniciens
+// 2. Routes dyal l'Users
 // ==========================================
 
+// Jib l'users KOLLHOM (Admin + Techniciens)
 router.get('/', auth, async (req, res) => {
   try {
-    const result = await pool.query("SELECT id, name, email, phone FROM users WHERE role = 'technicien'");
+    const result = await pool.query("SELECT id, name, email, phone, role FROM users ORDER BY id ASC");
     res.json(result.rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Zid user jdid (Mn l'Modal)
 router.post('/', auth, async (req, res) => {
-  const { name, email, phone, password } = req.body;
+  const { name, email, phone, password, role } = req.body;
   try {
-    const hash = await bcrypt.hash(password, 10);
+    const hash = await bcrypt.hash(password || '123456', 10);
+    const userRole = role || 'technicien'; // Par défaut technicien
     const result = await pool.query(
-      "INSERT INTO users (name, email, password, phone, role) VALUES ($1, $2, $3, $4, 'technicien') RETURNING id, name, email, phone",
-      [name, email, hash, phone]
+      "INSERT INTO users (name, email, password, phone, role) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, phone, role",
+      [name, email, hash, phone, userRole]
     );
     res.json(result.rows[0]);
-  } catch (err) { res.status(400).json({ error: 'Email deja msta3mel' }); }
+  } catch (err) { res.status(400).json({ error: 'Email déja msta3mel' }); }
 });
 
-router.put('/:id', auth, async (req, res) => {
-  const { name, email, phone } = req.body;
+// ==========================================
+// 3. Routes dyal l'Permissions w l'Actions
+// ==========================================
+
+// Jib les permissions dyal chi user
+router.get('/:id/permissions', auth, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT permissions FROM users WHERE id = $1', [req.params.id]);
+    res.json(result.rows[0]?.permissions || {});
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Update les permissions dyal chi user
+router.put('/:id/permissions', auth, async (req, res) => {
+  const { permissions } = req.body;
   try {
     const result = await pool.query(
-      "UPDATE users SET name = $1, email = $2, phone = $3 WHERE id = $4 RETURNING id, name, email, phone",
-      [name, email, phone, req.params.id]
+      'UPDATE users SET permissions = $1 WHERE id = $2 RETURNING permissions',
+      [permissions, req.params.id]
+    );
+    res.json(result.rows[0].permissions);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Réinitialiser l'mot de passe dyal chi user
+router.put('/:id/reset-password', auth, async (req, res) => {
+  try {
+    const defaultPassword = '123456';
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(defaultPassword, salt);
+    
+    await pool.query('UPDATE users SET password = $1 WHERE id = $2', [hashedPassword, req.params.id]);
+    
+    res.json({ success: true, message: `Mot de passe réinitialisé à: ${defaultPassword}` });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Modifier user (Smiya, Email, Phone, Role)
+router.put('/:id', auth, async (req, res) => {
+  const { name, email, phone, role } = req.body;
+  try {
+    const result = await pool.query(
+      "UPDATE users SET name = $1, email = $2, phone = $3, role = $4 WHERE id = $5 RETURNING id, name, email, phone, role",
+      [name, email, phone, role, req.params.id]
     );
     res.json(result.rows[0]);
   } catch (err) { res.status(400).json({ error: 'Mochkil f l\'modification' }); }
 });
 
+// Supprimer user
 router.delete('/:id', auth, async (req, res) => {
   try {
     await pool.query('DELETE FROM users WHERE id = $1', [req.params.id]);

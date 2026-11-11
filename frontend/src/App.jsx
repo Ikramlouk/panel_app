@@ -14,6 +14,7 @@ import Rapports from './pages/Rapports';
 import PanneauStatistiques from './pages/PanneauStatistiques'; // <-- Zidna hada
 import Utilisateurs from './pages/Utilisateurs';
 import Parametres from './pages/Parametres';
+import Tasks from './pages/Tasks'; 
 
 const Private = ({ children }) =>
   localStorage.getItem('token') ? children : <Navigate to="/" />;
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="users" element={<Utilisateurs />} />
           <Route path="settings" element={<Parametres />} />
           <Route path="parametres" element={<Parametres />} />
+          <Route path="tasks" element={<Tasks />} /> 
         </Route>
       </Routes>
     </BrowserRouter>
