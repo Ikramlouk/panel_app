@@ -15,6 +15,7 @@ import PanneauStatistiques from './pages/PanneauStatistiques'; // <-- Zidna hada
 import Utilisateurs from './pages/Utilisateurs';
 import Parametres from './pages/Parametres';
 import Tasks from './pages/Tasks'; 
+import HistoriqueTasks from './pages/HistoriqueTasks';
 
 const Private = ({ children }) =>
   localStorage.getItem('token') ? children : <Navigate to="/" />;
@@ -44,6 +45,7 @@ export default function App() {
           <Route path="settings" element={<Parametres />} />
           <Route path="parametres" element={<Parametres />} />
           <Route path="tasks" element={<Tasks />} /> 
+          <Route path="historique-tasks" element={<HistoriqueTasks />} />
         </Route>
       </Routes>
     </BrowserRouter>

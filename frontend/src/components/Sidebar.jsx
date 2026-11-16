@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard, Map, Bell, BarChart2, Users, 
-  Settings, FileText, Wrench, User, CheckCircle // <-- Zid hadi
+  Settings, FileText, Wrench, User, CheckCircle, History // <-- ZEDNA HISTORY
 } from 'lucide-react'; 
 import { useState, useEffect } from 'react';
 
@@ -23,6 +23,7 @@ export default function Sidebar() {
     { name: 'Paramètres', icon: Settings, path: '/settings' },
     { name: 'Maintenance', icon: Wrench, path: '/maintenance' },
     { name: 'Tasks', icon: CheckCircle, path: '/tasks' },
+    { name: 'Historique des tâches', icon: History, path: '/historique-tasks' }, // <-- Daba ghadi ykhdem
   ];
 
   return (

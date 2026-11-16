@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import * as XLSX from 'xlsx'; // <-- Import dyal Excel
+import * as XLSX from 'xlsx';
 import { Plus, Search, Calendar, User, X, AlertTriangle } from 'lucide-react';
 
 export default function Tasks() {
@@ -101,8 +101,9 @@ export default function Tasks() {
       "Priorité": t.priority,
       "Statut": t.status,
       "Technicien": t.technicien_name || 'Non assignée',
-      "Date prévue": t.due_date ? new Date(t.due_date).toLocaleDateString('fr-FR') : '—',
-      "Créé le": t.created_at ? new Date(t.created_at).toLocaleDateString('fr-FR') : '—'
+      // 🔥 Hna 9adna l'date: n-affichiw due_date_str li jaw mn l'Backend
+      "Date prévue": t.due_date_str || (t.due_date ? t.due_date.split('T')[0] : '—'),
+      "Créé le": t.created_at ? t.created_at.split('T')[0] : '—'
     }));
 
     if (dataToExport.length === 0) return alert("Aucune intervention à exporter");
@@ -137,7 +138,6 @@ export default function Tasks() {
               className="pl-9 pr-4 py-2 bg-white dark:bg-[#1A1A1F] border border-gray-200 dark:border-white/10 rounded-xl text-sm w-64 focus:outline-none" 
             />
           </div>
-          {/* L'Bouton dyal l'Export */}
           <button onClick={handleExport} className="px-4 py-2 bg-white dark:bg-[#1A1A1F] border border-gray-200 dark:border-white/10 rounded-xl text-sm font-bold hover:bg-gray-50 transition">Exporter</button>
           <button onClick={() => setShowAddModal(true)} className="px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold hover:bg-red-700 transition shadow-md flex items-center gap-2"><Plus size={16}/> Nouvelle intervention</button>
         </div>
@@ -172,7 +172,8 @@ export default function Tasks() {
                   <p className="text-[10px] text-gray-500 mb-3">{task.description}</p>
                   <div className="flex justify-between items-center text-[10px] text-gray-400">
                     <span className="flex items-center gap-1"><User size={10}/> {task.technicien_name || 'Non assignée'}</span>
-                    <span className="flex items-center gap-1"><Calendar size={10}/> {task.due_date ? new Date(task.due_date).toLocaleDateString() : '—'}</span>
+                    {/* 🔥 Hna 9adna l'date: n-affichiw due_date_str li jaw mn l'Backend */}
+                    <span className="flex items-center gap-1"><Calendar size={10}/> {task.due_date_str || (task.due_date ? task.due_date.split('T')[0] : '—')}</span>
                   </div>
                 </div>
               ))}
