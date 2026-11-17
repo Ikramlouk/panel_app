@@ -10,9 +10,12 @@ const detectRoutes = require('./routes/detect');
 const userRoutes = require('./routes/users');
 const maintenanceRoutes = require('./routes/maintenance');
 const reportRoutes = require('./routes/reports');
-const app = express();
 const chatRoutes = require('./routes/chat');
 const settingsRoutes = require('./routes/settings');
+const historyRoutes = require('./routes/history'); 
+const stockRoutes = require('./routes/stock'); // <-- Import dyal l'Stock
+
+const app = express();
 
 // 2. Les Middlewares (Cors w JSON)
 app.use(cors());
@@ -25,11 +28,14 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/panneaux', panneauRoutes);
 app.use('/api/detect', detectRoutes);
-app.use('/api/users', userRoutes);         // <-- Route dyal l'Users (mrat wa7da)
-app.use('/api/maintenance', maintenanceRoutes); // <-- Route dyal l'Maintenance
+app.use('/api/users', userRoutes);
+app.use('/api/maintenance', maintenanceRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/history', historyRoutes);
+app.use('/api/stock', stockRoutes); // <-- Route dyal l'Stock
+
 // 5. Ch3el l'serveur
 app.listen(process.env.PORT, () =>
   console.log(`Server running on port ${process.env.PORT}`)

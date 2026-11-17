@@ -16,6 +16,7 @@ import Utilisateurs from './pages/Utilisateurs';
 import Parametres from './pages/Parametres';
 import Tasks from './pages/Tasks'; 
 import HistoriqueTasks from './pages/HistoriqueTasks';
+import Stock from './pages/Stock';
 
 const Private = ({ children }) =>
   localStorage.getItem('token') ? children : <Navigate to="/" />;
@@ -46,6 +47,7 @@ export default function App() {
           <Route path="parametres" element={<Parametres />} />
           <Route path="tasks" element={<Tasks />} /> 
           <Route path="historique-tasks" element={<HistoriqueTasks />} />
+          <Route path="stock" element={<Stock />} />
         </Route>
       </Routes>
     </BrowserRouter>
